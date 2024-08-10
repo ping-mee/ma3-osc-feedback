@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<GMA3 DataVersion="2.0.2.0">
+    <UserPlugin Name="MA3 OSC FEEDBACK" Guid="E3 1C 05 FC 18 8A 10 00 0D 45 18 A2 5E 43 E6 27" Version="1.0.0.0">
+        <ComponentLua Name="MA3 OSC FEEDBACK" Guid="37 F3 0C 07 C5 0C 10 02 B2 2C 1E 4D F2 1C 2D A1" FileName="MA3 OSC FEEDBACK.lua" />
+    </UserPlugin>
+</GMA3>
