@@ -60,12 +60,15 @@ local function poll(exec_no)
     local execAssObj = execAssObjNoClass:GetClass()
     local colors = color_map[execAssObj] or {0, 0, 0} -- fallback colors
     
-    -- Appearance-based color override
+    -- Check if assObjApp exists before using gsub
     local assObjApp = execAssObjNoClass:Get("Appearance")
     if assObjApp then
-      local app_id = tonumber(assObjApp:gsub("Appearance ", ""))
-      local app_data = ShowData().Appearances[app_id]
-      colors = {tonumber(app_data.BackR), tonumber(app_data.BackG), tonumber(app_data.BackB)}
+      -- Make sure assObjApp is valid and then remove "Appearance " prefix
+      local app_id = tonumber(tostring(assObjApp):gsub("Appearance ", ""))
+      if app_id and ShowData().Appearances[app_id] then
+        local app_data = ShowData().Appearances[app_id]
+        colors = {tonumber(app_data.BackR), tonumber(app_data.BackG), tonumber(app_data.BackB)}
+      end
     end
 
     -- Send colors through OSC
