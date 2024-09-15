@@ -38,6 +38,21 @@ local function send_osc(etype, exec_no, value)
   Cmd(cmd_str)
 end
 
+-- Function to reset all button LEDs to off (set RGB to 0)
+local function reset_all_leds()
+  for _, exec_no in ipairs(executor_table) do
+    send_osc("ExecCol_R", exec_no, 0)
+    send_osc("ExecCol_G", exec_no, 0)
+    send_osc("ExecCol_B", exec_no, 0)
+    
+    -- If the executor is in the xKey range, clear the xKey label
+    if (exec_no >= 291 and exec_no <= 298) or (exec_no >= 191 and exec_no <= 198) then
+      Cmd(osc_str_template:format(osc_config, "xKey", exec_no, ""))
+    end
+  end
+  debug_print("All LEDs have been reset to off.")
+end
+
 -- Reuse function to handle empty playback
 local function handle_empty_playback(exec_no)
   debug_print('Empty playback found on:'..tostring(exec_no))
@@ -60,14 +75,20 @@ local function poll(exec_no)
     local execAssObj = execAssObjNoClass:GetClass()
     local colors = color_map[execAssObj] or {0, 0, 0} -- fallback colors
     
-    -- Check if assObjApp exists before using gsub
+    -- Check if assObjApp exists and is valid
     local assObjApp = execAssObjNoClass:Get("Appearance")
     if assObjApp then
-      -- Make sure assObjApp is valid and then remove "Appearance " prefix
-      local app_id = tonumber(tostring(assObjApp):gsub("Appearance ", ""))
+      -- Make sure assObjApp is valid and is a string, then remove "Appearance " prefix
+      assObjApp = tostring(assObjApp):gsub("Appearance ", "")
+      local app_id = tonumber(assObjApp) -- Convert the string to a number after cleanup
+
+      -- Ensure app_id is valid and the appearance exists in ShowData
       if app_id and ShowData().Appearances[app_id] then
         local app_data = ShowData().Appearances[app_id]
         colors = {tonumber(app_data.BackR), tonumber(app_data.BackG), tonumber(app_data.BackB)}
+      else
+        -- If app_id is invalid, fallback to default colors
+        colors = {0, 0, 0}
       end
     end
 
@@ -84,6 +105,7 @@ local function poll(exec_no)
   end
 end
 
+
 local function mainloop() 
   while enabled do
     for _, exec_no in ipairs(executor_table) do 
@@ -94,8 +116,12 @@ local function mainloop()
 end
 
 local function maintoggle() 
-  enabled = not enabled
   if enabled then
+    enabled = false
+  else
+    enabled = true
+    -- Reset all LEDs to off before starting the main loop
+    reset_all_leds()
     mainloop()
   end
 end
