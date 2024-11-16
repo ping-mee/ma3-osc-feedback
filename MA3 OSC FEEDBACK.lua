@@ -2,7 +2,14 @@
 -- I will not take any responsibility if something breaks at any time. I consider this plugin as unstable.
 -- To this date (10.08.2024) I've never had problems with it, but still I am going to consider it as unstable.
 
-local executor_table = {101,102,103,104,105,106,107,108,201,202,203,204,205,206,207,208,301,302,303,304,305,306,307,308,401,402,403,404,405,406,407,408,291,292,293,294,295,296,297,298,191,192,193,194,195,196,197,198}
+local executor_table = {
+  101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
+  201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215,
+  301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315,
+  401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415,
+  291, 292, 293, 294, 295, 296, 297, 298,
+  191, 192, 193, 194, 195, 196, 197, 198
+}
 local osc_config = 1
 local osc_template = 'SendOSC %i "/%s%i,i,%i"'
 local osc_str_template = 'SendOSC %i "/%s%i,s,%s"'
