@@ -130,6 +130,7 @@ local luaComponentHandle = select(4,...)
 
 function main()
   reset_all_leds()
+  callback()
   -- Setup hooks for all executors
   local pluginHandle = luaComponentHandle:Parent()
 
