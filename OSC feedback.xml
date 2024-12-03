@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<GMA3 DataVersion="2.0.2.0">
+    <UserPlugin Name="OSC feedback" Guid="01 33 F7 3E 05 35 46 5F AE 33 44 0F 11 88 3E DC" Version="2.0.2.0">
+        <ComponentLua Name="OSC feedback" Guid="27 D8 BC 18 5C 58 45 54 9F 7F EA F9 B8 28 8D 5D" FileName="OSC feedback.lua" />
+    </UserPlugin>
+</GMA3>
