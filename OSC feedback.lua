@@ -136,7 +136,10 @@ function main()
 
   local hookedObj = DataPool().Pages
   HookObjectChange(callback, hookedObj, pluginHandle)
-  debug_print("Hooking changes to executors.")
+  debug_print("Hooking changes to pages.")
+  local hookedObj = DataPool().Sequences
+  HookObjectChange(callback, hookedObj, pluginHandle)
+  debug_print("Hooking changes to sequences.")
 end
 
 return main
