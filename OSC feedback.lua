@@ -5,6 +5,7 @@
 local osc_config = 1
 local osc_template = 'SendOSC %i "/%s%i,i,%i"'
 local osc_str_template = 'SendOSC %i "/%s%i,s,%s"'
+local enabled = false
 local debug = false
 local executor_table = {
   101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
@@ -31,115 +32,91 @@ local color_map = {
   Timer = {103, 103, 110}
 }
 
+local cached_states = {}
+
 function debug_print(msg)
   if debug then
     Printf(msg)
   end
 end
 
-local function tablelength(T)
-  local count = 0
-  for _ in pairs(T) do
-    count = count + 1
-  end
-  return count
-end
-
 function send_osc(etype, exec_no, value)
-  local cmd_str = osc_template:format(osc_config, etype, exec_no, value)
-  debug_print(cmd_str)
-  Cmd(cmd_str)
+  local cache_key = etype .. exec_no
+  if cached_states[cache_key] ~= value then
+    cached_states[cache_key] = value
+    Cmd(osc_template:format(osc_config, etype, exec_no, value))
+  end
 end
 
--- Function to reset all button LEDs to off (set RGB to 0)
-function reset_all_leds()
+local function reset_all_leds()
+  cached_states = {}
   for _, exec_no in ipairs(executor_table) do
     send_osc("ExecCol_R", exec_no, 0)
     send_osc("ExecCol_G", exec_no, 0)
     send_osc("ExecCol_B", exec_no, 0)
-    
-    -- If the executor is in the xKey range, clear the xKey label
-    if (exec_no >= 291 and exec_no <= 298) or (exec_no >= 191 and exec_no <= 198) then
+    if exec_no >= 191 and exec_no <= 298 then
       Cmd(osc_str_template:format(osc_config, "xKey", exec_no, ""))
     end
   end
-  debug_print("All LEDs have been reset to off.")
+  debug_print("All LEDs have been reset.")
 end
 
--- Reuse function to handle empty playback
-function handle_empty_playback(exec_no)
-  debug_print('Empty playback found on:' .. tostring(exec_no))
-  if (exec_no >= 291 and exec_no <= 298) or (exec_no >= 191 and exec_no <= 198) then
-    Cmd(osc_str_template:format(osc_config, "xKey", exec_no, ""))
-  end
+local function handle_empty_playback(exec_no)
+  debug_print("Empty playback: " .. exec_no)
   send_osc("ExecCol_R", exec_no, 0)
   send_osc("ExecCol_G", exec_no, 0)
   send_osc("ExecCol_B", exec_no, 0)
+  if exec_no >= 191 and exec_no <= 198 or exec_no >= 291 and exec_no <= 298 then
+    local label = ""
+    if cached_states["xKey" .. exec_no] ~= label then
+      cached_states["xKey" .. exec_no] = label
+      Cmd(osc_str_template:format(osc_config, "xKey", exec_no, label))
+    end
+  end
 end
 
-function poll(exec_no)
+local function poll(exec_no, appearances)
   local exec = GetExecutor(exec_no)
-  local execAssObjNoClass = exec and exec:GetAssignedObj()
+  local execObj = exec and exec:GetAssignedObj()
 
-  if not execAssObjNoClass then
+  if not execObj then
     handle_empty_playback(exec_no)
-  else
-    -- Extract object appearance and class
-    local execAssObj = execAssObjNoClass:GetClass()
-    local colors = color_map[execAssObj] or {0, 0, 0} -- fallback colors
-    
-    -- Check if assObjApp exists and is valid
-    local assObjApp = execAssObjNoClass:Get("Appearance")
-    if assObjApp then
-      -- Make sure assObjApp is valid and is a string, then remove "Appearance " prefix
-      assObjApp = tostring(assObjApp):gsub("Appearance ", "")
-      local app_id = tonumber(assObjApp) -- Convert the string to a number after cleanup
+    return
+  end
 
-      -- Ensure app_id is valid and the appearance exists in ShowData
-      if app_id and ShowData().Appearances[app_id] then
-        local app_data = ShowData().Appearances[app_id]
-        colors = {tonumber(app_data.BackR), tonumber(app_data.BackG), tonumber(app_data.BackB)}
-      else
-        -- If app_id is invalid, fallback to default colors
-        colors = {0, 0, 0}
-      end
-    end
+  local execClass = execObj:GetClass()
+  local colors = color_map[execClass] or {0, 0, 0}
+  
+  local appearance = execObj:Get("Appearance")
+  local app_id = appearance and tonumber(tostring(appearance):match("%d+"))
 
-    -- Send colors through OSC
-    send_osc("ExecCol_R", exec_no, colors[1])
-    send_osc("ExecCol_G", exec_no, colors[2])
-    send_osc("ExecCol_B", exec_no, colors[3])
+  if app_id and appearances[app_id] then
+    local app_data = appearances[app_id]
+    colors = {tonumber(app_data.BackR), tonumber(app_data.BackG), tonumber(app_data.BackB)}
+  end
 
-    -- Handle special xKey case
-    if (exec_no >= 291 and exec_no <= 298) or (exec_no >= 191 and exec_no <= 198) then
-      local exec_label = execAssObjNoClass:Get("Name")
-      Cmd(osc_str_template:format(osc_config, "xKey", exec_no, exec_label))
+  send_osc("ExecCol_R", exec_no, colors[1])
+  send_osc("ExecCol_G", exec_no, colors[2])
+  send_osc("ExecCol_B", exec_no, colors[3])
+
+  if exec_no >= 191 and exec_no <= 198 or exec_no >= 291 and exec_no <= 298 then
+    local label = execObj:Get("Name") or ""
+    if cached_states["xKey" .. exec_no] ~= label then
+      cached_states["xKey" .. exec_no] = label
+      Cmd(osc_str_template:format(osc_config, "xKey", exec_no, label))
     end
   end
 end
 
-function callback()
-  for i=1, tablelength(executor_table) do
-    poll(executor_table[i])
-  end
-  debug_print("Updated")
-end
-
--- Get the handle to this Lua component.
-local luaComponentHandle = select(4,...)
-
-function main()
+local function main()
+  enabled = not enabled
   reset_all_leds()
-  callback()
-  -- Setup hooks for all executors
-  local pluginHandle = luaComponentHandle:Parent()
-
-  local hookedObj = DataPool().Pages
-  HookObjectChange(callback, hookedObj, pluginHandle)
-  debug_print("Hooking changes to pages.")
-  local hookedObj = DataPool().Sequences
-  HookObjectChange(callback, hookedObj, pluginHandle)
-  debug_print("Hooking changes to sequences.")
+  local appearances = ShowData().Appearances
+  while enabled do
+    for _, exec_no in ipairs(executor_table) do
+      poll(exec_no, appearances)
+    end
+  end
 end
 
 return main
